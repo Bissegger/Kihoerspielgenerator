@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>KI HÖRSPIEL GENERATOR</title>
+<title>🎭 KI HÖRSPIEL GENERATOR</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -20,7 +20,7 @@ body {
   padding:20px;
   border-radius:14px;
   width:100%;
-  max-width:520px;
+  max-width:540px;
 }
 h2 { text-align:center; }
 .line {
@@ -43,8 +43,35 @@ button {
   cursor:pointer;
 }
 audio { width:100%; margin-top:15px; }
-a { display:block; margin-top:10px; text-align:center; color:#00ffaa; text-decoration:none; }
-small { display:block; margin-top:8px; opacity:0.6; text-align:center; }
+a {
+  display:block;
+  margin-top:10px;
+  text-align:center;
+  color:#00ffaa;
+  text-decoration:none;
+}
+.progress {
+  margin-top:15px;
+  background:#333;
+  border-radius:10px;
+  overflow:hidden;
+}
+.progress-bar {
+  height:14px;
+  width:0%;
+  background:#00ccff;
+}
+.progress-text {
+  text-align:center;
+  margin-top:6px;
+  font-size:13px;
+}
+small {
+  display:block;
+  margin-top:8px;
+  opacity:0.6;
+  text-align:center;
+}
 </style>
 </head>
 
@@ -54,24 +81,22 @@ small { display:block; margin-top:8px; opacity:0.6; text-align:center; }
 
   <div id="lines"></div>
 
-  <button onclick="addLine()">➕ Neue Zeile</button>
-  <button onclick="generateHörspiel()">🎶 Hörspiel erzeugen</button>
+  <button id="addLineBtn" type="button">➕ Neue Zeile</button>
+  <button id="generateBtn" type="button">🎶 Hörspiel erzeugen</button>
 
-  <div style="margin-top:15px;">
-    <div style="background:#333;border-radius:10px;overflow:hidden;">
-      <div id="progressBar" style="height:14px;width:0%;background:#00ccff;"></div>
-    </div>
-    <div id="progressText" style="text-align:center;margin-top:6px;font-size:13px;">0.0 %</div>
+  <div class="progress">
+    <div id="progressBar" class="progress-bar"></div>
   </div>
+  <div id="progressText" class="progress-text">0.0 %</div>
 
   <audio id="audio" controls></audio>
-  <a id="download">⬇ Datei herunterladen</a>
+  <a id="download">⬇ Hörspiel herunterladen</a>
 
   <small>Hörspiel-Modus · Fortschritt live</small>
 </div>
 
 <script>
-const API_KEY = "sk_d336569cc3360c289ac6c535cb05053a7bb8443f39c9a7e6"; // ⚠️ Niemals öffentlich teilen
+const API_KEY = "sk_d336569cc3360c289ac6c535cb05053a7bb8443f39c9a7e6";
 
 function voiceSelectHTML() {
   return `
@@ -94,138 +119,119 @@ function addLine() {
   `;
   document.getElementById("lines").appendChild(div);
 }
-    <textarea placeholder="Text für diese Rolle..."></textarea>
-  `;
-  document.getElementById("lines").appendChild(div);
-}
 
+document.getElementById("addLineBtn").addEventListener("click", addLine);
+document.getElementById("generateBtn").addEventListener("click", generateHörspiel);
+
+// erste Zeile automatisch
 addLine();
 
 async function generateHörspiel() {
-  const lines = document.querySelectorAll('.line');
+  const lines = document.querySelectorAll(".line");
   if (!lines.length) return alert("Keine Zeilen vorhanden");
 
-  const progressBar = document.getElementById('progressBar');
-  const progressText = document.getElementById('progressText');
+  const progressBar = document.getElementById("progressBar");
+  const progressText = document.getElementById("progressText");
 
   let audioBuffers = [];
-  let total = lines.length;
   let step = 0;
+  const total = lines.length;
 
   const updateProgress = () => {
     const percent = ((step / total) * 100).toFixed(1);
-    progressBar.style.width = percent + '%';
-    progressText.textContent = percent + ' %';
+    progressBar.style.width = percent + "%";
+    progressText.textContent = percent + " %";
   };
 
   updateProgress();
 
   for (const line of lines) {
-    const text = line.querySelector('textarea').value.trim();
-    const voice = line.querySelector('select').value;
-    if (!text) { step++; updateProgress(); continue; }
+    const text = line.querySelector("textarea").value.trim();
+    const voice = line.querySelector("select").value;
 
-    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}`, {
-      method: "POST",
-      headers: {
-        "xi-api-key": API_KEY,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        text,
-        model_id: "eleven_multilingual_v2",
-        voice_settings: { stability: 0.2, similarity_boost: 0.9 }
-      })
-    });
+    if (!text) {
+      step++;
+      updateProgress();
+      continue;
+    }
 
-    if (!res.ok) throw new Error("ElevenLabs Fehler");
+    const res = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${voice}`,
+      {
+        method: "POST",
+        headers: {
+          "xi-api-key": API_KEY,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          text,
+          model_id: "eleven_multilingual_v2"
+        })
+      }
+    );
+
+    if (!res.ok) {
+      alert("Fehler bei ElevenLabs");
+      return;
+    }
 
     audioBuffers.push(await res.arrayBuffer());
     step++;
     updateProgress();
   }
-() {
-  const lines = document.querySelectorAll('.line');
-  if (!lines.length) return alert("Keine Zeilen vorhanden");
-
-  let audioBuffers = [];
-
-  for (const line of lines) {
-    const text = line.querySelector('textarea').value.trim();
-    const voice = line.querySelector('select').value;
-    if (!text) continue;
-
-    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}`, {
-      method: "POST",
-      headers: {
-        "xi-api-key": API_KEY,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        text,
-        model_id: "eleven_multilingual_v2",
-        voice_settings: { stability: 0.2, similarity_boost: 0.9 }
-      })
-    });
-
-    if (!res.ok) throw new Error("ElevenLabs Fehler");
-
-    audioBuffers.push(await res.arrayBuffer());
-  }
-
-    // ⚠️ MP3s können nicht einfach korrekt zusammengeklebt werden
-  // Lösung: WAV-Ausgabe (funktioniert zuverlässig im Browser)
 
   const audioContext = new AudioContext();
-  const decodedBuffers = [];
+  const decoded = [];
 
   for (const buf of audioBuffers) {
-    const audioBuf = await audioContext.decodeAudioData(buf.slice(0));
-    decodedBuffers.push(audioBuf);
+    decoded.push(await audioContext.decodeAudioData(buf.slice(0)));
   }
 
-  const totalLength = decodedBuffers.reduce((sum, b) => sum + b.length, 0);
-  const output = audioContext.createBuffer(1, totalLength, audioContext.sampleRate);
+  const length = decoded.reduce((s, b) => s + b.length, 0);
+  const output = audioContext.createBuffer(1, length, audioContext.sampleRate);
 
   let offset = 0;
-  decodedBuffers.forEach(b => {
+  decoded.forEach(b => {
     output.getChannelData(0).set(b.getChannelData(0), offset);
     offset += b.length;
   });
 
   function bufferToWav(buffer) {
     const length = buffer.length * 2 + 44;
-    const arrayBuffer = new ArrayBuffer(length);
-    const view = new DataView(arrayBuffer);
+    const ab = new ArrayBuffer(length);
+    const view = new DataView(ab);
     let pos = 0;
 
-    const writeString = s => { for (let i=0;i<s.length;i++) view.setUint8(pos++, s.charCodeAt(i)); };
+    const write = s => { for (let i=0;i<s.length;i++) view.setUint8(pos++, s.charCodeAt(i)); };
 
-    writeString('RIFF'); view.setUint32(pos, length-8, true); pos+=4;
-    writeString('WAVEfmt '); view.setUint32(pos,16,true); pos+=4;
+    write("RIFF"); view.setUint32(pos, length-8, true); pos+=4;
+    write("WAVEfmt "); view.setUint32(pos,16,true); pos+=4;
     view.setUint16(pos,1,true); pos+=2;
     view.setUint16(pos,1,true); pos+=2;
     view.setUint32(pos,buffer.sampleRate,true); pos+=4;
     view.setUint32(pos,buffer.sampleRate*2,true); pos+=4;
     view.setUint16(pos,2,true); pos+=2;
     view.setUint16(pos,16,true); pos+=2;
-    writeString('data'); view.setUint32(pos,buffer.length*2,true); pos+=4;
+    write("data"); view.setUint32(pos,buffer.length*2,true); pos+=4;
 
     const data = buffer.getChannelData(0);
     for (let i=0;i<data.length;i++,pos+=2) {
       const s = Math.max(-1, Math.min(1, data[i]));
-      view.setInt16(pos, s<0 ? s*0x8000 : s*0x7fff, true);
+      view.setInt16(pos, s < 0 ? s*0x8000 : s*0x7fff, true);
     }
-    return new Blob([arrayBuffer], {type:'audio/wav'});
+    return new Blob([ab], { type:"audio/wav" });
   }
 
-  const wavBlob = bufferToWav(output);
-  const url = URL.createObjectURL(wavBlob);
+  const wav = bufferToWav(output);
+  const url = URL.createObjectURL(wav);
 
   audio.src = url;
   download.href = url;
-  download.download = 'hoerspiel.wav';
+  download.download = "hoerspiel.wav";
   audio.play();
+
+  progressBar.style.width = "100%";
+  progressText.textContent = "100.0 %";
 }
 </script>
 </body>
