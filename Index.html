@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>KI HÖRSPIEL GENERATOR</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+  background:#0f0f0f;
+  color:#fff;
+  font-family:Arial, sans-serif;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+}
+.app {
+  background:#1c1c1c;
+  padding:20px;
+  border-radius:14px;
+  width:100%;
+  max-width:520px;
+}
+h2 { text-align:center; }
+.line {
+  background:#262626;
+  padding:10px;
+  border-radius:10px;
+  margin-top:10px;
+}
+textarea, select, button {
+  width:100%;
+  margin-top:8px;
+  padding:10px;
+  border-radius:10px;
+  border:none;
+  font-size:15px;
+}
+button {
+  background:#00ccff;
+  font-weight:bold;
+  cursor:pointer;
+}
+audio { width:100%; margin-top:15px; }
+a { display:block; margin-top:10px; text-align:center; color:#00ffaa; text-decoration:none; }
+small { display:block; margin-top:8px; opacity:0.6; text-align:center; }
+</style>
+</head>
+
+<body>
+<div class="app">
+  <h2>🎭 KI HÖRSPIEL GENERATOR</h2>
+
+  <div id="lines"></div>
+
+  <button onclick="addLine()">➕ Neue Zeile</button>
+  <button onclick="generateHörspiel()">🎶 MP3 erzeugen</button>
+
+  <audio id="audio" controls></audio>
+  <a id="download" download="hoerspiel.mp3">⬇ MP3 herunterladen</a>
+
+  <small>ElevenLabs · Reihenfolge garantiert</small>
+</div>
+
+<script>
+const API_KEY = "sk_d336569cc3360c289ac6c535cb05053a7bb8443f39c9a7e6"; // ⚠️ Niemals öffentlich teilen
+
+function voiceSelectHTML() {
+  return `
+  <select>
+    <option value="EXAVITQu4vr4xnSDxMaL">Adam (männlich)</option>
+    <option value="21m00Tcm4TlvDq8ikWAM">Rachel (weiblich)</option>
+    <option value="AZnzlk1XvdvUeBnXmlld">Domi (stark)</option>
+    <option value="ErXwobaYiN019PkySvjV">Antoni (weich)</option>
+    <option value="MF3mGyEYCl7XYWbV9V6O">Elli (jung)</option>
+    <option value="TxGEqnHWrfWFTfGW9XjX">Josh (klar)</option>
+  </select>`;
+}
+
+function addLine() {
+  const div = document.createElement("div");
+  div.className = "line";
+  div.innerHTML = `
+    ${voiceSelectHTML()}
+    <textarea placeholder="Text für diese Rolle..."></textarea>
+  `;
+  document.getElementById("lines").appendChild(div);
+}
+
+addLine();
+
+async function generateHörspiel() {
+  const lines = document.querySelectorAll('.line');
+  if (!lines.length) return alert("Keine Zeilen vorhanden");
+
+  let audioBuffers = [];
+
+  for (const line of lines) {
+    const text = line.querySelector('textarea').value.trim();
+    const voice = line.querySelector('select').value;
+    if (!text) continue;
+
+    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}`, {
+      method: "POST",
+      headers: {
+        "xi-api-key": API_KEY,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        text,
+        model_id: "eleven_multilingual_v2",
+        voice_settings: { stability: 0.2, similarity_boost: 0.9 }
+      })
+    });
+
+    if (!res.ok) throw new Error("ElevenLabs Fehler");
+
+    audioBuffers.push(await res.arrayBuffer());
+  }
+
+  const merged = new Blob(audioBuffers, { type: "audio/mpeg" });
+  const url = URL.createObjectURL(merged);
+
+  audio.src = url;
+  download.href = url;
+  audio.play();
+}
+</script>
+</body>
+</html>
